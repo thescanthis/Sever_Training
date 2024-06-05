@@ -64,7 +64,28 @@ int main()
 
 	while (true)
 	{
+		//클라 입장에서는 커널단계로 보내주기만 하면 성공적으로 보냈다고 생각
+		// 그래서 서버가 recv해주지않아도 넘어가는 이유를 알 수 있다.
 		//TODO
+		char snedBuffer[100] = "Hello World";
+		int32 res = ::send(clientSocket, snedBuffer, sizeof(snedBuffer), 0);
+		if (!Socket_Error(res))
+			return 0;
+
+		cout << "Send Data" <<sizeof(snedBuffer)<<'\n';
+
+		char recvBuffer[1000];
+
+		int32 recvLen = ::recv(clientSocket, recvBuffer, sizeof(recvBuffer), 0);
+
+		if (recvLen <= 0)
+		{
+			if (Socket_Error(recvLen))
+				return 0;
+		}
+		cout << "Recv Data! Data = " << recvLen << '\n';
+		cout << "Recv Data! Len = " << recvLen << '\n';
+
 		this_thread::sleep_for(1s);
 	}
 

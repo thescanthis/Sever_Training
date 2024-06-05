@@ -73,6 +73,30 @@ int main()
 		char ipAddress[16];
 		::inet_ntop(AF_INET, &clientAddr.sin_addr, ipAddress, sizeof(ipAddress));
 		cout << "Client Connected! IP = " << ipAddress << '\n';
+
+		while (true)
+		{
+			char recvBuffer[1000];
+			int32 recvLen = ::recv(clientSocket, recvBuffer, sizeof(recvBuffer), 0);
+
+			if (recvLen <= 0)
+			{
+				if (Socket_Error(recvLen))
+					return 0;
+			}
+
+			cout << "Recv Data! Data = " << recvLen << '\n';
+			cout << "Recv Data! Len = " << recvLen << '\n';
+
+			//상대방이 데이터를 그대로 다시 토스
+			int32 recvLenCode = ::send(clientSocket, recvBuffer, recvLen, 0);
+
+			if (recvLenCode <= 0)
+			{
+				if (Socket_Error(recvLenCode))
+					return 0;
+			}
+		}
 	}
 
 	::WSACleanup();
