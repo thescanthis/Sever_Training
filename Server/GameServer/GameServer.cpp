@@ -39,45 +39,86 @@ int main()
 	if (::WSAStartup(MAKEWORD(2, 2), &wsaData) != 0)
 		return 0;
 
-	SOCKET serverSocket = ::socket(AF_INET, SOCK_DGRAM, 0);
-	if(!Socket_Error(serverSocket, "Socket"))
+	//블로킹(Blocking) 소켓
+	//accept -> 접속한 클라가 있을때
+	//connect -> 서버접속 성공 했을때
+	//send,sendto -> 요청한데이터를 송신 버퍼에 복사 했을때
+	//recv,recvfrom -> 수신버퍼에 도착한 데이터가 있꼬,이를 유저레벨 버퍼에 복사 했을때
+
+	//논블로킹 (Non-Blocking)
+
+	SOCKET listenSocket = ::socket(AF_INET, SOCK_STREAM, 0);
+	if (listenSocket == INVALID_SOCKET)
 		return 0;
 
-	//옵션을 해석하고 처리할 주체
-	//소켓코드 ->SOL_SOCKET
-	//IPv4 ->IPPROTO_IP
-	//TCP 프로토콜 -> IPPROTO_TCP
-	
-	//SO_KEEPALIVE = 주기적으로 연결 상태 확인 (TCP Only)
-	//상대방이 소리소문없이 연결을 끊는경우가 있음.
-	bool enable = true;
-	::setsockopt(serverSocket,SOL_SOCKET,SO_KEEPALIVE,(char*)&enable,sizeof(enable));
+	u_long on = 1;
+	if (::ioctlsocket(listenSocket, FIONBIO, &on))
+		return 0;
 
-	//SO_LINGER = 지연하다
-	//소인 버퍼에 있는 데이터를 보낼것인가, 날릴것인가?
-	//onoff = 0이면 closesocket() 바로 리턴, 아니면 linger초만큼 대기
-	LINGER linger;
-	linger.l_onoff = 1;
-	linger.l_linger = 5;
-	::setsockopt(serverSocket, SOL_SOCKET, SO_LINGER, (char*)&linger, sizeof(linger));
-	
-	//Half-close
-	//::shutdown(serverSocket, SD_SEND);
-	//::closesocket(serverSocket);
-	
-	//SO_SNDBUF
-	//SO_RCVBUF
+	SOCKADDR_IN serverAddr;
+	memset(&serverAddr, 0, sizeof(serverAddr));
+	serverAddr.sin_family = AF_INET;
+	serverAddr.sin_addr.s_addr = ::htonl(INADDR_ANY);
+	serverAddr.sin_port = ::htons(7777);
 
-	int32 sendBuffsize;
-	int32 optionLen = sizeof(sendBuffsize);
-	::getsockopt(serverSocket, SOL_SOCKET, SO_SNDBUF, (char*)&sendBuffsize, &optionLen);
-	
-	cout << sendBuffsize<<'\n';
+	if (::bind(listenSocket, (SOCKADDR*)&serverAddr, sizeof(serverAddr)) == SOCKET_ERROR)
+		return 0;
 
-	int32 recvBuffersize;
-	optionLen = sizeof(recvBuffersize);
-	::getsockopt(serverSocket, SOL_SOCKET, SO_RCVBUF, (char*)&recvBuffersize, &optionLen);
-	cout << recvBuffersize << '\n';
+	if (::listen(listenSocket, SOMAXCONN) == SOCKET_ERROR)
+		return 0;
+
+	cout << "Accept" << '\n';
+
+	SOCKADDR_IN clientAddr;
+	int32 addrLen = sizeof(clientAddr);
+
+	//Accept
+	while (true)
+	{
+		SOCKET clientSocket = ::accept(listenSocket, (SOCKADDR*)&clientAddr, &addrLen);
+		if (clientSocket == INVALID_SOCKET)
+		{
+			//Non-Blocking에선 여기로 들어가도 문제가 있는지는 모름 다시 체크를 해야함.
+			if (::WSAGetLastError() == WSAEWOULDBLOCK)
+				continue;
+
+			//Error
+			break;
+		}
+
+		cout << "Client Connected!" << '\n';
+		//Recv
+
+		while (true)
+		{
+			char recvBuffer[1000];
+			int recvLen = ::recv(clientSocket, recvBuffer, sizeof(recvBuffer), 0);
+			if (recvLen == SOCKET_ERROR)
+			{
+				if (::WSAGetLastError() == WSAEWOULDBLOCK)
+					continue;
+
+				break;
+			}
+			else if (recvLen == 0)
+				break;
+			cout << "Recv Data Len = " << recvLen << '\n';
+
+			//Send
+			while (true)
+			{
+				if (::send(clientSocket, recvBuffer, sizeof(recvLen), 0) == SOCKET_ERROR)
+				{
+					if (::WSAGetLastError() == WSAEWOULDBLOCK)
+						continue;
+					break;
+				}
+				cout << "Send Data ! Len = "<<recvLen << '\n';
+				break;
+			}
+
+		}
+	}
 
 	::WSACleanup();
 }

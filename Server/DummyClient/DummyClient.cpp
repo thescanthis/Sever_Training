@@ -38,11 +38,6 @@ int main()
 	if (::WSAStartup(MAKEWORD(2, 2), &wsaData) != 0)
 		return 0;
 
-	SOCKET clientSocket = ::socket(AF_INET, SOCK_DGRAM, 0);
-	if (!Socket_Error(clientSocket, "Socket"))
-		return 0;
-
-
 	::closesocket(clientSocket);
 	::WSACleanup();
 }
