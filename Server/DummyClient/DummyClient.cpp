@@ -7,12 +7,12 @@
 #include <ws2tcpip.h>
 #pragma comment(lib, "ws2_32.lib")
 
-bool Socket_Error(SOCKET clientSocket)
+bool Socket_Error(SOCKET clientSocket, const char* cause)
 {
 	if (clientSocket == INVALID_SOCKET)
 	{
 		int32 errCode = ::WSAGetLastError();
-		cout << "Socket ErrorCode" << errCode << '\n';
+		cout << cause << "ErrorCode:" << errCode << '\n';
 		return false;
 	}
 	return true;
@@ -49,18 +49,11 @@ int main()
 	//protocol = 0
 	//return : descriptor
 #endif
-	SOCKET clientSocket = ::socket(AF_INET,SOCK_STREAM,0);
-	Socket_Error(clientSocket);
+	SOCKET clientSocket = ::socket(AF_INET,SOCK_DGRAM,0);
+	Socket_Error(clientSocket,"Socket");
 
 	SOCKADDR_IN serverAddr; // IPv4
 	SockAddr_In_Init(serverAddr);
-
-	if (::connect(clientSocket, (SOCKADDR*)&serverAddr, sizeof(serverAddr))==SOCKET_ERROR)
-	{
-		Socket_Error(clientSocket);
-	}
-
-	cout << "Connected To Server!" << '\n';
 
 	while (true)
 	{
@@ -68,19 +61,26 @@ int main()
 		// 그래서 서버가 recv해주지않아도 넘어가는 이유를 알 수 있다.
 		//TODO
 		char snedBuffer[100] = "Hello World";
-		int32 res = ::send(clientSocket, snedBuffer, sizeof(snedBuffer), 0);
-		if (!Socket_Error(res))
+		int32 res = ::sendto(clientSocket, snedBuffer, sizeof(snedBuffer), 0,
+			(SOCKADDR*)&serverAddr,sizeof(serverAddr));
+		if (!Socket_Error(res,"SendTo"))
 			return 0;
 
 		cout << "Send Data" <<sizeof(snedBuffer)<<'\n';
 
+		SOCKADDR_IN recvAddr;
+		::memset(&recvAddr, 0, sizeof(recvAddr));
+		int32 addLen = sizeof(recvAddr);
+
 		char recvBuffer[1000];
 
-		int32 recvLen = ::recv(clientSocket, recvBuffer, sizeof(recvBuffer), 0);
+		int32 recvLen = ::recvfrom(clientSocket, recvBuffer, sizeof(recvBuffer), 0,
+		(SOCKADDR*)&recvAddr,&addLen);
+
 
 		if (recvLen <= 0)
 		{
-			if (Socket_Error(recvLen))
+			if (Socket_Error(recvLen,"RecvTo"))
 				return 0;
 		}
 		cout << "Recv Data! Data = " << recvLen << '\n';
