@@ -13,6 +13,16 @@
 #include <ws2tcpip.h>
 #pragma comment(lib, "ws2_32.lib")
 
+
+const int32 BUFSIZE = 1000;
+struct Session
+{
+	SOCKET socket;
+	char recvBuffer[BUFSIZE];
+	int32 recvBytes = 0;
+	int32 sendBytes = 0;
+};
+
 bool Socket_Error(SOCKET listenSocket,const char* cause)
 {
 	if (listenSocket == INVALID_SOCKET)
@@ -69,54 +79,112 @@ int main()
 
 	cout << "Accept" << '\n';
 
-	SOCKADDR_IN clientAddr;
-	int32 addrLen = sizeof(clientAddr);
+	//Select Model = (select Funtion is Core)
+	//소켓 함수 호출이 성공할 시점을 미리 알 수 있다.
+	//문제 상황)
+	//수신버퍼에 데이터가 없는데, read 한다거나!
+	//송신버퍼가 꽉 찼는데, write 한다거나!
+	//-블로킹 소켓 : 조건이 만족되지 않아서 블로킹 되는 상황 예방
+	// -논 블로킹 소켓 : 조건이 만족되지 않아서 불필요하게 반복 체크하는 상황을 예방
 
-	//Accept
+	//socket set
+	//1. read[] write[] if[] 관찰 대상 등록.
+	//OutOfBand는 send() 마지막 인자 MSG_OOB로 보내는 특별한 데이터
+	//받는쪽에서도 recv OOB세팅을 해야 읽을 수 있음.
+	//2 select(readSet,writeSet,exceptSet) -> 관찰 시작
+	//3 적어도 하나의 소켓이 준비되면 리턴 -> 낙오자는 알아서 제거됨.
+	//4 남은 소켓 체크해서 진행.
+
+	//fd_set set;
+	//FD_ZERO : 초기화
+	// FD_ZERO(set);
+	//FD_SET : 소켓을 넣는다.
+	//FD_SET(s,&set);
+	//FD_CLR : 소켓 s를 제거
+	//FD_CLR(s,&set);
+	//FD_ISSET : 소켓 s가 set에 들어욌으면 0이 아닌 값을 리턴한다.
+
+	vector<Session> session;
+	session.reserve(100);
+
+	fd_set reads;
+	fd_set writes;
 	while (true)
 	{
-		SOCKET clientSocket = ::accept(listenSocket, (SOCKADDR*)&clientAddr, &addrLen);
-		if (clientSocket == INVALID_SOCKET)
-		{
-			//Non-Blocking에선 여기로 들어가도 문제가 있는지는 모름 다시 체크를 해야함.
-			if (::WSAGetLastError() == WSAEWOULDBLOCK)
-				continue;
+		//낙오자는 알아서 제거되기때문에 그 제거된것을 다시 가지고와야하기때문에 반복을 해야함.
 
-			//Error
-			break;
+		// 소켓 셋 초기화
+		FD_ZERO(&reads);
+		FD_ZERO(&writes);
+
+		//ListenSocket 등록
+		FD_SET(listenSocket, &reads);
+		for (Session& s : session)
+		{
+			//소켓 등록
+			if (s.recvBytes <= s.sendBytes)
+				FD_SET(s.socket, &reads);
+			else
+				FD_SET(s.socket, &writes);
+
 		}
 
-		cout << "Client Connected!" << '\n';
-		//Recv
+		//[옵션] 마지막 timeout 인자 설정 가능.
+		int32 retVal = ::select(0, &reads, &writes, nullptr, nullptr);
+		if (retVal == SOCKET_ERROR) break;
 
-		while (true)
+		//Listener 소켓 체크
+		if (FD_ISSET(listenSocket, &reads))
 		{
-			char recvBuffer[1000];
-			int recvLen = ::recv(clientSocket, recvBuffer, sizeof(recvBuffer), 0);
-			if (recvLen == SOCKET_ERROR)
-			{
-				if (::WSAGetLastError() == WSAEWOULDBLOCK)
-					continue;
+			//소켓이 있다면 accept 할 준비가 됨 !
+			SOCKADDR_IN clientAddr;
+			int32 addrLen = sizeof(clientAddr);
+			SOCKET clientSocket = ::accept(listenSocket, (SOCKADDR*)&clientAddr, &addrLen);
 
-				break;
+			if (clientSocket != INVALID_SOCKET)
+			{
+				cout << "Client Connected<<'\n";
+				session.push_back(Session{ clientSocket });
 			}
-			else if (recvLen == 0)
-				break;
-			cout << "Recv Data Len = " << recvLen << '\n';
+		}
 
-			//Send
-			while (true)
+		//나머지 소켓 체크
+		for (Session& s : session)
+		{
+			//Read
+			if (FD_ISSET(s.socket, &reads))
 			{
-				if (::send(clientSocket, recvBuffer, sizeof(recvLen), 0) == SOCKET_ERROR)
+				int32 recvLen = ::recv(s.socket, s.recvBuffer, BUFSIZE, 0);
+
+				if (recvLen <= 0)
 				{
-					if (::WSAGetLastError() == WSAEWOULDBLOCK)
-						continue;
-					break;
+					//TODO : session 제거
+					continue;
 				}
-				cout << "Send Data ! Len = "<<recvLen << '\n';
-				break;
+
+				s.recvBytes = recvLen;
 			}
 
+			//Write
+			if (FD_ISSET(s.socket, &writes))
+			{
+				//블로킹 모드 -> 모든데이터 다 보냄
+				//논블로킹모드 -> 경우에 따라 일부만 보낼 수 있음.
+				//[          ] 10byte를 보내야하는데 6byte만 올수도있으니 이런부분을 처리해줌.
+				int sendLen = send(s.socket, &s.recvBuffer[s.sendBytes], s.recvBytes - s.sendBytes, 0);
+				if (sendLen == SOCKET_ERROR)
+				{
+					//TODO : session 제거
+					continue;
+				}
+
+				s.sendBytes += sendLen;
+				if (s.recvBytes == s.sendBytes)
+				{
+					s.recvBytes = 0;
+					s.sendBytes = 0;
+				}
+			}
 		}
 	}
 
