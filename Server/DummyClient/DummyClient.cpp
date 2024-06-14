@@ -72,41 +72,31 @@ int main()
 	cout << "Connected to Server !"<<'\n';
 
 	char sendBuffer[100] = "Hello World";
-
+	WSAEVENT wsaEvent = ::WSACreateEvent();
+	WSAOVERLAPPED overlapped = {};
+	overlapped.hEvent = wsaEvent;
 	//Send
 	while (true)
 	{
-		if (::send(clientSocket, sendBuffer, sizeof(sendBuffer), 0) == SOCKET_ERROR)
+		WSABUF wsaBuf;
+		wsaBuf.buf = sendBuffer;
+		wsaBuf.len = 100;
+
+		DWORD SendLen = 0;
+		DWORD flags = 0;
+
+		if(::WSASend(clientSocket, &wsaBuf, 1, &SendLen, flags, &overlapped, nullptr) == SOCKET_ERROR);
 		{
-			if (WSAGetLastError() == WSAEWOULDBLOCK)
-				continue;
-			
-			//Error
-			break;
+			if (::WSAGetLastError() == WSA_IO_PENDING)
+			{
+				::WSAWaitForMultipleEvents(1, &wsaEvent, TRUE, WSA_INFINITE, FALSE);
+				::WSAGetOverlappedResult(clientSocket, &overlapped, &SendLen, FALSE, &flags);
+			}
 		}
+
 		cout << "Send Data ! Len = " << sizeof(sendBuffer) << '\n';
 
-		while (true)
-		{
-			char recvBuffer[1000];
-			int32 recvLen = ::recv(clientSocket, recvBuffer, sizeof(recvBuffer), 0);
-			if (recvLen == SOCKET_ERROR)
-			{
-				if (WSAGetLastError() == WSAEWOULDBLOCK)
-					continue;
-
-				//Error
-				break;
-			}
-			else if (recvLen == 0)
-			{
-				//데이터가 아예 안옴.
-				break;
-			}
-
-			cout << "성공!" << '\n';
-			break;
-		}
+		
 
 		this_thread::sleep_for(1s);
 	}
