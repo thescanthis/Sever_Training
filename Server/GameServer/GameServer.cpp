@@ -17,12 +17,19 @@
 const int32 BUFSIZE = 1000;
 struct Session
 {
+	WSAOVERLAPPED overlapped = {};
 	SOCKET socket;
 	char recvBuffer[BUFSIZE];
 	int32 recvBytes = 0;
 	int32 sendBytes = 0;
-	WSAOVERLAPPED overlapped = {};
 };
+
+void CALLBACK RecvCallback(DWORD error, DWORD recvLen, LPWSAOVERLAPPED overlapped, DWORD flags)
+{
+	//TODO
+	cout << "Data RecvLen Callback = "<<recvLen << '\n';
+	Session* session = (Session*)overlapped;
+}
 
 bool Socket_Error(SOCKET listenSocket,const char* cause)
 {
@@ -80,32 +87,20 @@ int main()
 
 	cout << "Accept" << '\n';
 
-	//Overlapped IO (비동기 + 논블로킹)
-	// - Overlapped 함수를 건다(WSARecv,WSASend)
-	// - Overlapped 함수가 성공 했는지 확인
-	// -> 성공 했으면 결과얻어서 처리
-	// -> 실패했으면 사유를 확인. Pending상태인지 에러상태인지 확인을 해야함.
+	//Overlapped 모델 (Completion Routine 콜백 기반)
+	// -비동기 입출력 지원하는 소켓생성
+	// -비동기 입출력 함수 호출 (완료 루틴의 시작 주소를 넘겨준다.)
+	// -비동기 작업이 바로 완료되지 않으면, WSA_IO_PENDING 오류코드
+	// -비동기 입출력 함수 호출한 쓰레드를 ->Alertable Wait 상태로만든다
+	// (기다리는 상태 비동기 콜백상태를 호출될때 바뀜.)
+	// -비동기 IO 완료되면, 운영체제는 완료 루틴 호출
+	// -완료 루틴 호출이 모두 끝나면, 쓰레드 Alertavle wait 상태에서 빠져나옴
 
-	// 1) 비동기 입출력 소켓
-	// 2) WSABUF 시작주소 + 개수
-	// 3) 보내고/받은 바이트수
-	// 4) 상세옵션 0
-	// 5) WSAOVERAPPED 구조체 주소값.				 방식 1
-	// 6) 입출력이 완료되면 OS가 호출할 콜백 함수   방식 2
-	// WSASend
-	// WSARecv
-	//Scatter-Gather
-
-	//Overlapped 모델 (이벤트 기반)
-	// -비동기 입출력 지원하는 소켓 생성 + 통지받기위한 이벤트 객체 생성
-	// -비동기 입출력 함수 호출(1에서 만든 이벤트 객체를 같이 넘겨줌)
-	// -비동기 작업이 바로 완료되지않으면 WSA_IO_PENDING 오류코드
-	// 운영체제는 이벤트 객체를 signaled 상태로 만들어서 완료 상태 알려줌
-	// -WSAWaitForMultipleEvents 함수 호출해서 이벤트 객체의 signal 판별
-	// -WSAGetoverlappedResult 호출해서 비동기 입출력 결과 확인 및 데이터 처리.
-
-	// 비동기소켓,overlapped구조체,바이트수,대기확인,거의사용 X
-
+	// 1) 오류 발생시 0이 아닌값
+	// 2) 전송 바이트 수
+	// 3) 비동기 입출력 함수 호출 시 넘겨준 WSAOVERLAPPED 구조체의 주소값.
+	// 4) 0 
+	// void CompletionRoutine()
 	while (true)
 	{
 		SOCKADDR_IN clientAddr;
@@ -127,8 +122,7 @@ int main()
 		}
 
 		Session session = Session{ clientSocket };
-		WSAEVENT wsaEvent = ::WSACreateEvent();
-		session.overlapped.hEvent = wsaEvent;
+		//WSAEVENT wsaEvent = ::WSACreateEvent();
 
 		cout << "Client Connected!" << '\n';
 
@@ -141,23 +135,29 @@ int main()
 			DWORD recvLen = 0;
 			DWORD flags = 0;
 
-			if(::WSARecv(clientSocket, &wsaBuf, 1, &recvLen, &flags, &session.overlapped, nullptr) == SOCKET_ERROR)
+			if(::WSARecv(clientSocket, &wsaBuf, 1, &recvLen, &flags, &session.overlapped, RecvCallback) == SOCKET_ERROR)
 			{
 				if (::WSAGetLastError() == WSA_IO_PENDING)
 				{
-					::WSAWaitForMultipleEvents(1, &wsaEvent, TRUE, WSA_INFINITE, FALSE);
-					::WSAGetOverlappedResult(session.socket, &session.overlapped, &recvLen, FALSE, &flags);
+					//Pending
+					//Alertable Wait 여러함수중 선택
+					::SleepEx(INFINITY, TRUE);
+					//::WSAWaitForMultipleEvents(1, &wsaEvent, TRUE, WSA_INFINITE, TRUE);
+
 				}
 				else {
 					//TODO
 					break;
 				}
 			}
+			else {
+				cout << "Data Recv Len = " << recvLen << '\n';
+			}
 
 			cout << "Data Reccv Len = "<<recvLen << '\n';
 		}
 		::closesocket(session.socket);
-		::WSACloseEvent(wsaEvent);
+		//::WSACloseEvent(wsaEvent);
 	}
 
 	::WSACleanup();
