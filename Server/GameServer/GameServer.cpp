@@ -24,6 +24,20 @@ struct Session
 	int32 sendBytes = 0;
 };
 
+enum IO_TYPE
+{
+	READ,
+	WRITE,
+	ACCEPT,
+	CONNECT
+};
+
+struct OverlappedEx
+{
+	WSAOVERLAPPED overlapped = {};
+	int32 type = 0;
+};
+
 void CALLBACK RecvCallback(DWORD error, DWORD recvLen, LPWSAOVERLAPPED overlapped, DWORD flags)
 {
 	//TODO
@@ -49,6 +63,33 @@ void SockAddr_In_Init(SOCKADDR_IN& serverAddr)
 	serverAddr.sin_family = AF_INET;
 	serverAddr.sin_addr.s_addr = ::htonl(INADDR_ANY); // 니가 알아서 해줘
 	serverAddr.sin_port = ::htons(7777);
+}
+
+void WorkerThreadMain(HANDLE iocpHandle)
+{
+	while (true)
+	{
+		DWORD bytes = 0;
+		Session* session = nullptr;
+		OverlappedEx* overlappedEx = nullptr;
+
+		//일감을 받을때 까진 대기
+		BOOL ret = ::GetQueuedCompletionStatus(iocpHandle, &bytes, 
+			(ULONG_PTR*)&session, (LPOVERLAPPED*)overlappedEx, INFINITY);
+
+		if (ret == FALSE || bytes) continue;
+
+		ASSERT_CRASH(overlappedEx->type == IO_TYPE::READ);
+
+		cout << "Recv Data IOPC = "<<bytes << '\n';
+		WSABUF wsabuf;
+		wsabuf.buf = session->recvBuffer;
+		wsabuf.len = BUFSIZE;
+
+		DWORD recvLen = 0;
+		DWORD flags = 0;
+		::WSARecv(session->socket,&wsabuf, 1, &recvLen, &flags, &overlappedEx->overlapped, NULL);
+	}
 }
 
 int main()
@@ -88,77 +129,61 @@ int main()
 	cout << "Accept" << '\n';
 
 	//Overlapped 모델 (Completion Routine 콜백 기반)
-	// -비동기 입출력 지원하는 소켓생성
-	// -비동기 입출력 함수 호출 (완료 루틴의 시작 주소를 넘겨준다.)
-	// -비동기 작업이 바로 완료되지 않으면, WSA_IO_PENDING 오류코드
-	// -비동기 입출력 함수 호출한 쓰레드를 ->Alertable Wait 상태로만든다
-	// (기다리는 상태 비동기 콜백상태를 호출될때 바뀜.)
-	// -비동기 IO 완료되면, 운영체제는 완료 루틴 호출
-	// -완료 루틴 호출이 모두 끝나면, 쓰레드 Alertavle wait 상태에서 빠져나옴
+	// - 비동기 입출력 함수 완료시, 쓰레드마다 APC큐에 일감이 쌓임.
+	// - Alertable Wait상태로 들어가서 APC큐를 비우기(콜백함수)
+	// 단점) APC큐가 쓰레드마다 고유하게 있다! Alertable Wait 자체 부담!
+	// 단점) 이벤트방식 : (소켓 : 이벤트 1:1 대응)
 
-	// 1) 오류 발생시 0이 아닌값
-	// 2) 전송 바이트 수
-	// 3) 비동기 입출력 함수 호출 시 넘겨준 WSAOVERLAPPED 구조체의 주소값.
-	// 4) 0 
-	// void CompletionRoutine()
+	//IOCP(Completion Port) 모델
+	// - Completion Port(쓰레드마다 있는건 아니고, 1개가 중앙에서 APC큐를 관리 하는 그림)
+	// - Alertable Wait->CP결과처리를 GetQueueCOmpletionStatus
+	// 쓰레드랑 궁합이 굉장히 좋다.
+
+	//CreateCompletionPort
+	//GetQueuedCompletionStatus
+
+	vector<Session*> sessionManager;
+
+	//CP 생성 초기화
+	HANDLE iocpHandle = ::CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, 0, 0);
+
+	for (int32 i = 0; i < 5; i++)
+	{
+		GThreadManager->Launch([=]() {WorkerThreadMain(iocpHandle); });
+	}
+	//Main Thread = Accept
 	while (true)
 	{
 		SOCKADDR_IN clientAddr;
 		int32 addrLen = sizeof(clientAddr);
-		SOCKET clientSocket;
+		SOCKET clientSocket = ::accept(listenSocket, (SOCKADDR*)&clientAddr, &addrLen);
 
-		while (true)
-		{
-			clientSocket = ::accept(listenSocket, (SOCKADDR*)&clientAddr, &addrLen);
-			if (clientSocket != INVALID_SOCKET)
-				break;
-
-			if (::WSAGetLastError() == WSAEWOULDBLOCK)
-				continue;
-
-			//뭔가 문제가 있는 항상
-
+		if (clientSocket == INVALID_SOCKET)
 			return 0;
-		}
 
-		Session session = Session{ clientSocket };
+		Session* session = new Session();
+		session->socket = clientSocket;
+		sessionManager.push_back(session);
 		//WSAEVENT wsaEvent = ::WSACreateEvent();
 
 		cout << "Client Connected!" << '\n';
 
-		while (true)
-		{
-			WSABUF wsaBuf;
-			wsaBuf.buf = session.recvBuffer;
-			wsaBuf.len = BUFSIZE;
+		//소켓을 CP에 등록
+		::CreateIoCompletionPort((HANDLE)clientSocket,iocpHandle, (ULONG_PTR)session,0);
 
-			DWORD recvLen = 0;
-			DWORD flags = 0;
+		WSABUF wsaBuf;
+		wsaBuf.buf = session->recvBuffer;
+		wsaBuf.len = BUFSIZE;
 
-			if(::WSARecv(clientSocket, &wsaBuf, 1, &recvLen, &flags, &session.overlapped, RecvCallback) == SOCKET_ERROR)
-			{
-				if (::WSAGetLastError() == WSA_IO_PENDING)
-				{
-					//Pending
-					//Alertable Wait 여러함수중 선택
-					::SleepEx(INFINITY, TRUE);
-					//::WSAWaitForMultipleEvents(1, &wsaEvent, TRUE, WSA_INFINITE, TRUE);
-
-				}
-				else {
-					//TODO
-					break;
-				}
-			}
-			else {
-				cout << "Data Recv Len = " << recvLen << '\n';
-			}
-
-			cout << "Data Reccv Len = "<<recvLen << '\n';
-		}
-		::closesocket(session.socket);
+		DWORD recvLen = 0;
+		DWORD flags = 0;
+		OverlappedEx* overlappedEx = new OverlappedEx();
+		overlappedEx->type = IO_TYPE::READ;
+		::WSARecv(clientSocket, &wsaBuf, 1, &recvLen, &flags, &overlappedEx->overlapped, NULL);
+		//::closesocket(session.socket);
 		//::WSACloseEvent(wsaEvent);
 	}
 
+	GThreadManager->Join();
 	::WSACleanup();
 }
