@@ -20,5 +20,22 @@ public:
 
 	static bool BindWindowsFunton(SOCKET socket, GUID guid, LPVOID* fn);
 	static SOCKET CreateSocket();
+
+	static bool SetLinger(SOCKET socket, uint16 onoff, uint16 linger);
+	static bool SetReuseAddress(SOCKET socket, bool flag);
+	static bool SetRecvBufferSzie(SOCKET socket, int32 size);
+	static bool SetSendBufferSzie(SOCKET socket, int32 size);
+	static bool SetTcpNoDelay(SOCKET socket, bool flag);
+	static bool SetUpdateAcceptSocket(SOCKET socket, SOCKET litenSocket);
+
+	static bool Bind(SOCKET socket, NetAddress netAddr);
+	static bool BindAnyAddress(SOCKET socket, uint16 port);
+	static bool Listen(SOCKET socket, int32 backlog = SOMAXCONN);
+	static bool Close(SOCKET socket);
 };
 
+template<typename T>
+static inline bool SetSocketOpt(SOCKET socket, int32 level, int32 optName, T optVal)
+{
+	return SOCKET_ERROR != ::setsockopt(socket, level, optName, reinterpret_cast<char*>(&optVal), sizeof(T));
+}
