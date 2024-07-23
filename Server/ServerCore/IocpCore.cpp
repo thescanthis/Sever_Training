@@ -17,17 +17,18 @@ IocpCore::~IocpCore()
 
 bool IocpCore::Register(IocpObject* iocpObject)
 {
-	return CreateIoCompletionPort(iocpObject->GetHandle(), _iocpHandle,reinterpret_cast<ULONG_PTR>(iocpObject), 0);
+	return CreateIoCompletionPort(iocpObject->GetHandle(), _iocpHandle,/*Key*/0, 0);
 }
 
 bool IocpCore::Dispatch(uint32 timeout)
 {
 	//일감이 있는지 두리번 거림
 	DWORD numOfBytes = 0;
+	ULONG_PTR Key = 0;
 	IocpObject* iocpObject = nullptr;
 	IocpEvent* iocpEvnet = nullptr;
 
-	if (::GetQueuedCompletionStatus(_iocpHandle, OUT & numOfBytes, OUT reinterpret_cast<PULONG_PTR>(&iocpObject), OUT reinterpret_cast<LPOVERLAPPED*>(&iocpEvnet), timeout))
+	if (::GetQueuedCompletionStatus(_iocpHandle, OUT & numOfBytes, OUT &Key, OUT reinterpret_cast<LPOVERLAPPED*>(&iocpEvnet), timeout))
 	{
 		iocpObject->Dispatch(iocpEvnet, numOfBytes);
 	}
