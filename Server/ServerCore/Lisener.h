@@ -3,19 +3,19 @@
 #include "NetAddress.h"
 
 class AcceptEvent;
-
+class ServerService;
 /*----------------
-	Lisener
+	Listener
 ----------------*/
 
-class Lisener : public IocpObject
+class Listener : public IocpObject
 {
 public:
-	Lisener() = default;
-	~Lisener();
+	Listener() = default;
+	~Listener();
 public:
 	/* 외부에서 사용*/
-	bool StartAccept(NetAddress netAddress);
+	bool StartAccept(ServerServiceRef service);
 	void CloseSocket();
 public:
 	virtual HANDLE GetHandle() override;
@@ -28,5 +28,6 @@ private:
 protected:
 	SOCKET _socket = INVALID_SOCKET;
 	Vector<AcceptEvent*> _acceptEvents;
+	ServerServiceRef _service;
 };
 
