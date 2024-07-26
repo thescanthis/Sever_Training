@@ -54,10 +54,10 @@ public:
 /*---------------------
 	  RecvEvnet
 ---------------------*/
-class RecvEvnet : public IocpEvent
+class RecvEvent : public IocpEvent
 {
 public:
-	RecvEvnet() : IocpEvent(EventType::Recv) {}
+	RecvEvent() : IocpEvent(EventType::Recv) {}
 };
 
 /*---------------------

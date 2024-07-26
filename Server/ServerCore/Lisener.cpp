@@ -73,8 +73,8 @@ HANDLE Listener::GetHandle()
 void Listener::Dispatch(IocpEvent* iocpEvent, int32 numOfBytes)
 {
 	ASSERT_CRASH(iocpEvent->eventType == EventType::Accept);
-
 	AcceptEvent* acceptEvent = static_cast<AcceptEvent*>(iocpEvent);
+	ProcessAccept(acceptEvent);
 }
 
 //2
@@ -115,10 +115,7 @@ void Listener::ProcessAccept(AcceptEvent* acceptEvent)
 	}
 
 	session->SetNetAddress(NetAddress(sockAddress));
-
-	cout << "Client Connected" << '\n';
-
-	//TODO
+	session->ProcessConnect();
 
 	RegisterAccept(acceptEvent);
 

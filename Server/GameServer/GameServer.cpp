@@ -10,12 +10,17 @@
 #include "Service.h"
 #include "Session.h"
 
+//최종적으로는 이런형식으로 사용.
+class GameSession : public Session {
+
+};
+
 int main()
 {
 	ServerServiceRef service = MakeShared<ServerService>(
 		NetAddress(L"127.0.0.1", 7777),
 		MakeShared<IocpCore>(),
-		MakeShared<Session>, //TDO
+		MakeShared<GameSession>, //TDO
 		100);
 
 	ASSERT_CRASH(service->Start());
@@ -30,8 +35,6 @@ int main()
 				}
 			});
 	}
-
-	cout << "Client Connected!" << endl;
 
 	GThreadManager->Join();
 }

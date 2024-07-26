@@ -3,9 +3,14 @@
 #include "Session.h"
 #include "Lisener.h"
 
+/*-------------
+	Service
+--------------*/
+
 Service::Service(ServiceType type, NetAddress address, IocpCoreRef core, SessionFactory factory, int32 maxSessionCount)
-	: _type(type),_netAddress(address),_iocpCore(core),_sessionFactory(factory),_maxSessionCount(maxSessionCount)
+	: _type(type), _netAddress(address), _iocpCore(core), _sessionFactory(factory), _maxSessionCount(maxSessionCount)
 {
+
 }
 
 Service::~Service()
@@ -14,12 +19,14 @@ Service::~Service()
 
 void Service::CloseService()
 {
-	//TODO
+	// TODO
 }
 
 SessionRef Service::CreateSession()
 {
 	SessionRef session = _sessionFactory();
+	session->SetService(shared_from_this());
+
 	if (_iocpCore->Register(session) == false)
 		return nullptr;
 
@@ -40,20 +47,24 @@ void Service::ReleaseSession(SessionRef session)
 	_sessionCount--;
 }
 
-ClientService::ClientService(NetAddress targetAddress, IocpCoreRef core, SessionFactory factory, int32 MaxSessionCount)
-	:Service(ServiceType::Client,targetAddress,core,factory,MaxSessionCount)
+/*-----------------
+	ClientService
+------------------*/
+
+ClientService::ClientService(NetAddress targetAddress, IocpCoreRef core, SessionFactory factory, int32 maxSessionCount)
+	: Service(ServiceType::Client, targetAddress, core, factory, maxSessionCount)
 {
 
 }
 
 bool ClientService::Start()
 {
-	//TODO
+	// TODO
 	return true;
 }
 
-ServerService::ServerService(NetAddress address, IocpCoreRef core, SessionFactory factory, int32 MaxSessionCount)
-	:Service(ServiceType::Server, address, core, factory, MaxSessionCount)
+ServerService::ServerService(NetAddress address, IocpCoreRef core, SessionFactory factory, int32 maxSessionCount)
+	: Service(ServiceType::Server, address, core, factory, maxSessionCount)
 {
 }
 
@@ -75,6 +86,7 @@ bool ServerService::Start()
 
 void ServerService::CloseService()
 {
-	//TODO
+	// TODO
+
 	Service::CloseService();
 }
