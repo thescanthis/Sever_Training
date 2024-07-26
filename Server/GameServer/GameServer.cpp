@@ -12,7 +12,19 @@
 
 //최종적으로는 이런형식으로 사용.
 class GameSession : public Session {
+public:
+	virtual int32 OnRecv(BYTE* buffer, int32 len) override
+	{
+		//Echo
+		cout << "OnRecv Len=" << len << '\n';
+		Send(buffer, len);
+		return len;
+	}
 
+	virtual void OnSend(int32 len) override
+	{
+		cout << "OnSend Len=" << len << '\n';
+	}
 };
 
 int main()

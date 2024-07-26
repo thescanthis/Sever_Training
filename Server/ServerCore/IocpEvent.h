@@ -67,4 +67,7 @@ class SendEvnet : public IocpEvent
 {
 public:
 	SendEvnet() : IocpEvent(EventType::Send) {}
+
+	//TEMP
+	vector<BYTE> buffer;
 };
