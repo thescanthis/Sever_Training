@@ -2,6 +2,11 @@
 #include "Session.h"
 #include "SocketUtils.h"
 #include "Service.h"
+
+/*--------------
+	Session
+---------------*/
+
 Session::Session()
 {
 	_socket = SocketUtils::CreateSocket();
@@ -14,31 +19,37 @@ Session::~Session()
 
 void Session::Send(BYTE* buffer, int32 len)
 {
-	//생각할 문제
-	// 1)버퍼관리?
-	// 2)sendEvent 관리? 단일? 여러개? WSASend 중첩?
+	// 생각할 문제
+	// 1) 버퍼 관리?
+	// 2) sendEvent 관리? 단일? 여러개? WSASend 중첩?
 
-	//TEMP
-	SendEvnet* sendEvent = xnew<SendEvnet>();
-	sendEvent->owner = shared_from_this(); //ADD_REF
+	// TEMP
+	SendEvent* sendEvent = xnew<SendEvent>();
+	sendEvent->owner = shared_from_this(); // ADD_REF
 	sendEvent->buffer.resize(len);
-	memcpy(sendEvent->buffer.data(), buffer, len);
+	::memcpy(sendEvent->buffer.data(), buffer, len);
 
 	WRITE_LOCK;
 	RegisterSend(sendEvent);
 }
 
-void Session::DisConnect(const WCHAR* cause)
+bool Session::Connect()
+{
+	return RegisterConnect();
+}
+
+void Session::Disconnect(const WCHAR* cause)
 {
 	if (_connected.exchange(false) == false)
-	{
 		return;
-	}
 
-	wcout << "Disconnect : " << cause << '\n';
-	OnDisconnected();
-	SocketUtils::Close(_socket);
+	// TEMP
+	wcout << "Disconnect : " << cause << endl;
+
+	OnDisconnected(); // 컨텐츠 코드에서 재정의
 	GetService()->ReleaseSession(GetSessionRef());
+
+	RegisterDisconnect();
 }
 
 HANDLE Session::GetHandle()
@@ -53,19 +64,68 @@ void Session::Dispatch(IocpEvent* iocpEvent, int32 numOfBytes)
 	case EventType::Connect:
 		ProcessConnect();
 		break;
+	case EventType::Disconnect:
+		ProcessDisconnect();
+		break;
 	case EventType::Recv:
 		ProcessRecv(numOfBytes);
 		break;
 	case EventType::Send:
-		ProcessSend(static_cast<SendEvnet*>(iocpEvent), numOfBytes);
+		ProcessSend(static_cast<SendEvent*>(iocpEvent), numOfBytes);
 		break;
 	default:
 		break;
 	}
 }
 
-void Session::RegisterConnect()
+bool Session::RegisterConnect()
 {
+	if (IsConnected())
+		return false;
+
+	if (GetService()->GetServiceType() != ServiceType::Client)
+		return false;
+
+	if (SocketUtils::SetReuseAddress(_socket, true) == false)
+		return false;
+
+	if (SocketUtils::BindAnyAddress(_socket, 0/*남는거*/) == false)
+		return false;
+
+	_connectEvent.Init();
+	_connectEvent.owner = shared_from_this(); // ADD_REF
+
+	DWORD numOfBytes = 0;
+	SOCKADDR_IN sockAddr = GetService()->GetNetAddress().GetSockAddr();
+	if (false == SocketUtils::ConnectEx(_socket, reinterpret_cast<SOCKADDR*>(&sockAddr), sizeof(sockAddr), nullptr, 0, &numOfBytes, &_connectEvent))
+	{
+		int32 errorCode = ::WSAGetLastError();
+		if (errorCode != WSA_IO_PENDING)
+		{
+			_connectEvent.owner = nullptr; // RELEASE_REF
+			return false;
+		}
+	}
+
+	return true;
+}
+
+bool Session::RegisterDisconnect()
+{
+	_disconnectEvent.Init();
+	_disconnectEvent.owner = shared_from_this(); // ADD_REF
+
+	if (false == SocketUtils::DisconnectEx(_socket, &_disconnectEvent, TF_REUSE_SOCKET, 0))
+	{
+		int32 errorCode = ::WSAGetLastError();
+		if (errorCode != WSA_IO_PENDING)
+		{
+			_disconnectEvent.owner = nullptr; // RELEASE_REF
+			return false;
+		}
+	}
+
+	return true;
 }
 
 void Session::RegisterRecv()
@@ -73,11 +133,8 @@ void Session::RegisterRecv()
 	if (IsConnected() == false)
 		return;
 
-	//이렇게 해도되지만 매번 생성하고 지우고 하는거보단
-	//RecvEvent* recvEvent = xnew<RecvEvent>();
-	//섹션 마다 맴버변수로 가지고있는것이 좀더 편함.
 	_recvEvent.Init();
-	_recvEvent.owner = shared_from_this(); //ADD_REF
+	_recvEvent.owner = shared_from_this(); // ADD_REF
 
 	WSABUF wsaBuf;
 	wsaBuf.buf = reinterpret_cast<char*>(_recvBuffer);
@@ -91,12 +148,12 @@ void Session::RegisterRecv()
 		if (errorCode != WSA_IO_PENDING)
 		{
 			HandleError(errorCode);
-			_recvEvent.owner = nullptr; //RELEASE_REF
+			_recvEvent.owner = nullptr; // RELEASE_REF
 		}
 	}
 }
 
-void Session::RegisterSend(SendEvnet* sendEvent)
+void Session::RegisterSend(SendEvent* sendEvent)
 {
 	if (IsConnected() == false)
 		return;
@@ -106,14 +163,13 @@ void Session::RegisterSend(SendEvnet* sendEvent)
 	wsaBuf.len = (ULONG)sendEvent->buffer.size();
 
 	DWORD numOfBytes = 0;
-
 	if (SOCKET_ERROR == ::WSASend(_socket, &wsaBuf, 1, OUT & numOfBytes, 0, sendEvent, nullptr))
 	{
 		int32 errorCode = ::WSAGetLastError();
 		if (errorCode != WSA_IO_PENDING)
 		{
 			HandleError(errorCode);
-			sendEvent->owner = nullptr; //ERLEASE_REF
+			sendEvent->owner = nullptr; // RELEASE_REF
 			xdelete(sendEvent);
 		}
 	}
@@ -121,47 +177,54 @@ void Session::RegisterSend(SendEvnet* sendEvent)
 
 void Session::ProcessConnect()
 {
+	_connectEvent.owner = nullptr; // RELEASE_REF
+
 	_connected.store(true);
 
 	// 세션 등록
 	GetService()->AddSession(GetSessionRef());
 
-	//컨텐츠 코드에서 오버로딩
+	// 컨텐츠 코드에서 재정의
 	OnConnected();
 
-	//수신 등록
+	// 수신 등록
 	RegisterRecv();
+}
+
+void Session::ProcessDisconnect()
+{
+	_disconnectEvent.owner = nullptr; // RELEASE_REF
 }
 
 void Session::ProcessRecv(int32 numOfBytes)
 {
-	_recvEvent.owner = nullptr; //RELEASE_REF
+	_recvEvent.owner = nullptr; // RELEASE_REF
 
 	if (numOfBytes == 0)
 	{
-		DisConnect(L"Recv 0");
+		Disconnect(L"Recv 0");
 		return;
 	}
 
-	//컨텐츠 코드에서 오버로딩
+	// 컨텐츠 코드에서 재정의
 	OnRecv(_recvBuffer, numOfBytes);
 
-	//여기까지 왔으면 통지가 완료된거니까 다시 수신등록을 해줌
+	// 수신 등록
 	RegisterRecv();
 }
 
-void Session::ProcessSend(SendEvnet* sendEvent,int32 numOfBytes)
+void Session::ProcessSend(SendEvent* sendEvent, int32 numOfBytes)
 {
-	sendEvent->owner = nullptr;
+	sendEvent->owner = nullptr; // RELEASE_REF
 	xdelete(sendEvent);
 
 	if (numOfBytes == 0)
 	{
-		DisConnect(L"Send 0");
+		Disconnect(L"Send 0");
 		return;
 	}
 
-	//컨텐츠 코드에서 오버로딩
+	// 컨텐츠 코드에서 재정의
 	OnSend(numOfBytes);
 }
 
@@ -170,13 +233,12 @@ void Session::HandleError(int32 errorCode)
 	switch (errorCode)
 	{
 	case WSAECONNRESET:
-		break;
 	case WSAECONNABORTED:
-		DisConnect(L"HandleError");
+		Disconnect(L"HandleError");
 		break;
 	default:
-		//TODO
-		cout << "Handle Error :" << errorCode << '\n';
+		// TODO : Log
+		cout << "Handle Error : " << errorCode << endl;
 		break;
 	}
 }

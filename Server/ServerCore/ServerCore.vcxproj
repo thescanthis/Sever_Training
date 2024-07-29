@@ -164,7 +164,7 @@
     <ClInclude Include="DeadLockProfiler.h" />
     <ClInclude Include="IocpCore.h" />
     <ClInclude Include="IocpEvent.h" />
-    <ClInclude Include="Lisener.h" />
+    <ClInclude Include="Listener.h" />
     <ClInclude Include="Lock.h" />
     <ClInclude Include="Memory.h" />
     <ClInclude Include="MemoryPool.h" />
@@ -187,7 +187,7 @@
     <ClCompile Include="DeadLockProfiler.cpp" />
     <ClCompile Include="IocpCore.cpp" />
     <ClCompile Include="IocpEvent.cpp" />
-    <ClCompile Include="Lisener.cpp" />
+    <ClCompile Include="Listener.cpp" />
     <ClCompile Include="Lock.cpp" />
     <ClCompile Include="Memory.cpp" />
     <ClCompile Include="MemoryPool.cpp" />

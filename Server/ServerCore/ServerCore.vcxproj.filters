@@ -78,13 +78,13 @@
     <ClInclude Include="IocpEvent.h">
       <Filter>Network</Filter>
     </ClInclude>
-    <ClInclude Include="Lisener.h">
-      <Filter>Network</Filter>
-    </ClInclude>
     <ClInclude Include="Session.h">
       <Filter>Network</Filter>
     </ClInclude>
     <ClInclude Include="Service.h">
+      <Filter>Network</Filter>
+    </ClInclude>
+    <ClInclude Include="Listener.h">
       <Filter>Network</Filter>
     </ClInclude>
   </ItemGroup>
@@ -134,13 +134,13 @@
     <ClCompile Include="IocpEvent.cpp">
       <Filter>Network</Filter>
     </ClCompile>
-    <ClCompile Include="Lisener.cpp">
-      <Filter>Network</Filter>
-    </ClCompile>
     <ClCompile Include="Session.cpp">
       <Filter>Network</Filter>
     </ClCompile>
     <ClCompile Include="Service.cpp">
+      <Filter>Network</Filter>
+    </ClCompile>
+    <ClCompile Include="Listener.cpp">
       <Filter>Network</Filter>
     </ClCompile>
   </ItemGroup>

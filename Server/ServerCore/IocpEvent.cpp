@@ -1,6 +1,10 @@
 #include "pch.h"
 #include "IocpEvent.h"
 
+/*--------------
+	IocpEvent
+---------------*/
+
 IocpEvent::IocpEvent(EventType type) : eventType(type)
 {
 	Init();

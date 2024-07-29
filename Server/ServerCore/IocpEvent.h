@@ -5,69 +5,81 @@ class Session;
 enum class EventType : uint8
 {
 	Connect,
+	Disconnect,
 	Accept,
-	/*PreRecv 고오오급 기법*/
+	//PreRecv,
 	Recv,
 	Send
 };
 
-//virtual로 사용 하게 되면 offset 0번의 주소값이 바뀔수 있어서 조심해야함.
-
-/*----------------
+/*--------------
 	IocpEvent
-----------------*/
+---------------*/
 
 class IocpEvent : public OVERLAPPED
 {
 public:
 	IocpEvent(EventType type);
 
-	void Init();
-public:
+	void			Init();
 
+public:
 	EventType		eventType;
 	IocpObjectRef	owner;
 };
 
-/*---------------------
-	ConnectEvnet
----------------------*/
+/*----------------
+	ConnectEvent
+-----------------*/
+
 class ConnectEvent : public IocpEvent
 {
 public:
-	ConnectEvent() : IocpEvent(EventType::Connect) {}
+	ConnectEvent() : IocpEvent(EventType::Connect) { }
 };
 
-/*---------------------
-	  AcceptEvnet
----------------------*/
+/*--------------------
+	DisconnectEvent
+----------------------*/
+
+class DisconnectEvent : public IocpEvent
+{
+public:
+	DisconnectEvent() : IocpEvent(EventType::Disconnect) { }
+};
+
+/*----------------
+	AcceptEvent
+-----------------*/
 
 class AcceptEvent : public IocpEvent
 {
 public:
-	AcceptEvent() : IocpEvent(EventType::Accept) {}
-public:
-	SessionRef session = nullptr;
+	AcceptEvent() : IocpEvent(EventType::Accept) { }
 
+public:
+	SessionRef	session = nullptr;
 };
 
-/*---------------------
-	  RecvEvnet
----------------------*/
+/*----------------
+	RecvEvent
+-----------------*/
+
 class RecvEvent : public IocpEvent
 {
 public:
-	RecvEvent() : IocpEvent(EventType::Recv) {}
+	RecvEvent() : IocpEvent(EventType::Recv) { }
 };
 
-/*---------------------
-	  SendEvnet
----------------------*/
-class SendEvnet : public IocpEvent
+/*----------------
+	SendEvent
+-----------------*/
+
+class SendEvent : public IocpEvent
 {
 public:
-	SendEvnet() : IocpEvent(EventType::Send) {}
+	SendEvent() : IocpEvent(EventType::Send) { }
 
-	//TEMP
+	// TEMP
 	vector<BYTE> buffer;
 };
