@@ -15,10 +15,14 @@
     <ClCompile Include="pch.cpp">
       <Filter>Utils</Filter>
     </ClCompile>
+    <ClCompile Include="GameSessionManager.cpp" />
+    <ClCompile Include="GameSession.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h">
       <Filter>Utils</Filter>
     </ClInclude>
+    <ClInclude Include="GameSessionManager.h" />
+    <ClInclude Include="GameSession.h" />
   </ItemGroup>
 </Project>
