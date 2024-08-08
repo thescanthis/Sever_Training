@@ -3,6 +3,7 @@
 #include "Service.h"
 #include "GameSession.h"
 #include "GameSessionManager.h"
+#include "BufferWriter.h"
 
 
 int main()
@@ -30,12 +31,17 @@ int main()
 	while (true)
 	{
 		SendBufferRef sendBuffer = GSendBufferManager->Open(4096);
+		BufferWriter bw(sendBuffer->Buffer(), 4096);
+		PacketHeader* header =  bw.Reserve<PacketHeader>();
 
-		BYTE* buffer = sendBuffer->Buffer();
-		((PacketHeader*)buffer)->size = (sizeof(SendData)+sizeof(PacketHeader));
-		((PacketHeader*)buffer)->id = 1;
-		::memcpy(&buffer[4], SendData, sizeof(SendData));
-		sendBuffer->Close((sizeof(SendData) + sizeof(PacketHeader)));
+		// id,체력,공격력
+		bw << (uint64)1001 << (uint32)100 << (uint16)10 << '\n';
+		bw.Write(SendData, sizeof(SendData));
+
+		header->size = bw.WriteSize();
+		header->id = 1; //1 : Test Msg;
+
+		sendBuffer->Close(bw.WriteSize());
 
 		GSessionManager.Broadcast(sendBuffer);
 		this_thread::sleep_for(250ms);
