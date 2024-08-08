@@ -2,6 +2,7 @@
 #include "ThreadManager.h"
 #include "Service.h"
 #include "GameSession.h"
+#include "GameSessionManager.h"
 
 
 int main()
@@ -23,6 +24,21 @@ int main()
 					service->GetIocpCore()->Dispatch();
 				}
 			});
+	}
+
+	char SendData[] = "Hello World";
+	while (true)
+	{
+		SendBufferRef sendBuffer = GSendBufferManager->Open(4096);
+
+		BYTE* buffer = sendBuffer->Buffer();
+		((PacketHeader*)buffer)->size = (sizeof(SendData)+sizeof(PacketHeader));
+		((PacketHeader*)buffer)->id = 1;
+		::memcpy(&buffer[4], SendData, sizeof(SendData));
+		sendBuffer->Close((sizeof(SendData) + sizeof(PacketHeader)));
+
+		GSessionManager.Broadcast(sendBuffer);
+		this_thread::sleep_for(250ms);
 	}
 
 	GThreadManager->Join();
