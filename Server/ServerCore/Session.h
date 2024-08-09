@@ -113,5 +113,5 @@ public:
 
 protected:
 	virtual int32 OnRecv(BYTE* buffer, int32 len) sealed; // sealed키워드를 주면 얘를 사용하지못함..?
-	virtual int32 OnRecvPacket(BYTE* buffer, int32 len) abstract;
+	virtual void OnRecvPacket(BYTE* buffer, int32 len) abstract;
 };
