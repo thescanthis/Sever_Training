@@ -16,7 +16,7 @@ void ServerPacketHandler::HandlePacket(BYTE* buffer, int32 len)
 	}
 }
 
-SendBufferRef ServerPacketHandler::Make_S_TEST(uint64 id,uint32 hp,uint16 attack, std::vector<BuffData> buffs)
+SendBufferRef ServerPacketHandler::Make_S_TEST(uint64 id,uint32 hp,uint16 attack,std::vector<BuffData> buffs, wstring name)
 {
 	SendBufferRef sendBuffer = GSendBufferManager->Open(4096);
 	BufferWriter bw(sendBuffer->Buffer(), sendBuffer->AllocSize());
@@ -32,6 +32,9 @@ SendBufferRef ServerPacketHandler::Make_S_TEST(uint64 id,uint32 hp,uint16 attack
 	{
 		bw << buff.buffId << buff.remainTime;
 	}
+
+	bw << (uint16)name.size(); //wstring nullptr은 계산되지않음
+	bw.Write((void*)name.data(), name.size()*sizeof(WCHAR));
 
 	header->size = bw.WriteSize();
 	header->id = 1; //1 : Test Msg;

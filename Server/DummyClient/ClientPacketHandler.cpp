@@ -29,6 +29,14 @@ struct S_TEST
 	uint64 id;
 	uint32 hp;
 	uint16 attack;
+	//가변데이터
+	//1. 문자열
+	//2. 바이트배열
+	//3. 일반 리스트
+
+	vector<BuffData> buffs;
+	wstring name;
+	
 };
 
 void ClientPacketHandler::Handler_S_TEST(BYTE* buffer, int32 len)
@@ -55,4 +63,13 @@ void ClientPacketHandler::Handler_S_TEST(BYTE* buffer, int32 len)
 	}
 
 	cout << "BuffCount" << buffCount << '\n';
+
+	wstring name;
+	uint16 nameLen;
+	br >> nameLen;
+	name.resize(nameLen);
+	br.Read((void*)name.data(), nameLen * sizeof(WCHAR));
+
+	wcout.imbue(std::locale("kor"));
+	wcout << name << '\n';
 }
