@@ -6,6 +6,16 @@
 #include "BufferWriter.h"
 #include "ServerPacketHandler.h"
 
+// 패키직렬화
+
+class Player
+{
+public:
+	int32 hp = 0;
+	int32 attack = 0;
+	Player* target = nullptr;
+	vector<int>buffs;
+};
 
 int main()
 {
