@@ -43,6 +43,9 @@ struct PKT_S_TEST
 	{
 		uint32 size = 0;
 		size += sizeof(PKT_S_TEST);
+		if (packetSize < size)
+			return false;
+		
 		size += buffsCount * sizeof(BuffsListItem);
 		if (size != packetSize)
 			return false;
@@ -51,6 +54,14 @@ struct PKT_S_TEST
 			return false;
 
 		return true;
+	}
+
+	using BuffList = PacketList<PKT_S_TEST::BuffsListItem>;
+	BuffList GetBuffsList()
+	{
+		BYTE* data = reinterpret_cast<BYTE*>(this);
+		data += buffoffset;
+		return BuffList(reinterpret_cast<PKT_S_TEST::BuffsListItem*>(data), buffsCount);
 	}
 	//가변데이터
 	//1. 문자열
@@ -70,23 +81,28 @@ void ClientPacketHandler::Handler_S_TEST(BYTE* buffer, int32 len)
 	if (len < sizeof(PKT_S_TEST))
 		return;
 
-	PKT_S_TEST pkt;
-	br >> pkt;
+	PKT_S_TEST* pkt = reinterpret_cast<PKT_S_TEST*>(buffer);
 
-	if (pkt.Validate() == false)
+	if (pkt->Validate() == false)
 		return;
 	//cout << "ID :" << id << "HP : " << hp << "ATTCK : " << attack << '\n';
+	
+	PKT_S_TEST::BuffList buffs = pkt->GetBuffsList();
 
-	vector<PKT_S_TEST::BuffsListItem> buffs;
+	cout << "BuffCount" << buffs.Count()<< '\n';
 
-	buffs.resize(pkt.buffsCount);
-	for (int32 i = 0; i < pkt.buffsCount; i++)
-		br >> buffs[i];
-
-	cout << "BuffCount" << pkt.buffsCount<< '\n';
-
-	for (int32 i = 0; i < pkt.buffsCount; i++)
+	for (int32 i = 0; i < buffs.Count(); i++)
 	{
 		cout << "Bufinfo : " << buffs[i].buffId << " " << buffs[i].remainTime << '\n';
+	}
+
+	for (auto it = buffs.begin(); it != buffs.end(); ++it)
+	{
+		cout << it->buffId << " " << it->remainTime << '\n';
+	}
+
+	for (auto& buff : buffs)
+	{
+		cout << buff.buffId << " " << buff.remainTime << '\n';
 	}
 }
