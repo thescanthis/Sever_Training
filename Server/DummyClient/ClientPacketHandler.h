@@ -21,12 +21,9 @@ public:
 	bool			operator!=(const PacketIterator& other) const { return _index != other._index; }
 	const T&		operator*() const { return _container[_index]; }
 	T&				operator*() { return _container[_index]; }
-	T*				operator->() { return &container[_index]; }
+	T*				operator->() { return &_container[_index]; }
 	PacketIterator& operator++() { _index++; return *this; }
-	PacketIterator	operator++(int32) { PacketIterator ret = *this; ++index; return ret; }
-
-	PacketIterator<T, PacketList<T>> begin() { return PacketIterator<T, PacketList<T>>(*this, 0); }
-	PacketIterator<T, PacketList<T>> end() { return PacketIterator<T, PacketList<T>>(*this, _count); }
+	PacketIterator	operator++(int32) { PacketIterator ret = *this; ++_index; return ret; }
 
 private:
 	C&		_container;
@@ -47,6 +44,10 @@ public:
 	}
 
 	uint16 Count() { return _count; }
+
+	//ranged-base for
+	PacketIterator<T, PacketList<T>> begin() { return PacketIterator<T, PacketList<T>>(*this, 0); }
+	PacketIterator<T, PacketList<T>> end() { return PacketIterator<T, PacketList<T>>(*this, _count); }
 private:
 	T*		_data;
 	uint16	_count;
