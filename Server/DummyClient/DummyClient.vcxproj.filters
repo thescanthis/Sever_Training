@@ -18,6 +18,9 @@
     <ClCompile Include="ClientPacketHandler.cpp">
       <Filter>Utils</Filter>
     </ClCompile>
+    <ClCompile Include="Protocol.pb.cc">
+      <Filter>Utils</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h">
@@ -26,10 +29,8 @@
     <ClInclude Include="ClientPacketHandler.h">
       <Filter>Utils</Filter>
     </ClInclude>
-  </ItemGroup>
-  <ItemGroup>
-    <Xml Include="PDL.xml">
-      <Filter>Main</Filter>
-    </Xml>
+    <ClInclude Include="Protocol.pb.h">
+      <Filter>Utils</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
