@@ -1,30 +1,18 @@
 #include "pch.h"
-#include "ClientPacketHandler.h"
+#include "ServerPacketHandler.h"
 #include "BufferReader.h"
 #include "Protocol.pb.h"
 
-void ClientPacketHandler::HandlePacket(BYTE* buffer, int32 len)
+PacketHandlerFunc GPacketHandler[UINT16_MAX];
+
+bool Handle_INVALID(PacketSessionRef& session, BYTE* buffer, int32 len)
 {
-	BufferReader br(buffer, len);
-	PacketHeader header;
-	br >> header;
-
-
-	switch (header.id)
-	{
-	case S_TEST:
-		Handler_S_TEST(buffer,len);
-		break;
-
-	}
+	PacketHeader* header = reinterpret_cast<PacketHeader*>(buffer);
+	return false;
 }
 
-
-void ClientPacketHandler::Handler_S_TEST(BYTE* buffer, int32 len)
+bool Handle_S_TEST(PacketSessionRef& session, Protocol::S_TEST& pkt)
 {
-	Protocol::S_TEST pkt;
-
-	ASSERT_CRASH(pkt.ParseFromArray(buffer + sizeof(PacketHeader), len - sizeof(PacketHeader)));
 	cout << pkt.id() << " " << pkt.hp() << " " << pkt.attack() << '\n';
 	cout << "BUFSIZE: " << pkt.buffs_size() << '\n';
 
@@ -38,4 +26,10 @@ void ClientPacketHandler::Handler_S_TEST(BYTE* buffer, int32 len)
 		}
 		cout << '\n';
 	}
+	return true;
+}
+
+bool Handle_S_LOGIN(PacketSessionRef& session, Protocol::S_LOGIN& pkt)
+{
+	return true;
 }
