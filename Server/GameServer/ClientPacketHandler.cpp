@@ -72,7 +72,7 @@ bool Handle_C_ENTER_GAME(PacketSessionRef& session, Protocol::C_ENTER_GAME& pkt)
 
 	PlayerRef Player = gameSession->_player[index]; //READ_ONLY
 
-	GRoom.Enter(Player);
+	GRoom.PushJob(MakeShared<EnterJob>(GRoom, Player));
 
 	Protocol::S_ENTER_GAME enterGamePkt;
 	enterGamePkt.set_sucess(true);
@@ -91,7 +91,7 @@ bool Handle_C_CHAT(PacketSessionRef& session, Protocol::C_CHAT& pkt)
 	chatPkt.set_msg(pkt.msg());
 	auto sendBuffer = ClientPacketHandler::MakeSendBuffer(chatPkt);
 
-	GRoom.Broadcast(sendBuffer);
+	GRoom.PushJob(MakeShared<BroadcastJob>(GRoom, sendBuffer));
 	return true;
 }
 

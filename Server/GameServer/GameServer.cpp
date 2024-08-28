@@ -7,6 +7,7 @@
 #include "ClientPacketHandler.h"
 #include "Protocol.pb.h"
 #include "job.h"
+#include "Room.h"
 
 // 패키직렬화
 
@@ -55,6 +56,12 @@ int main()
 					service->GetIocpCore()->Dispatch();
 				}
 			});
+	}
+
+	while (true)
+	{
+		GRoom.FlushJob();
+		this_thread::sleep_for(1s);
 	}
 
 	GThreadManager->Join();

@@ -17,7 +17,7 @@ Session::~Session()
 	SocketUtils::Close(_socket);
 }
 
-void Session::Send(SendBufferRef sendBuffer)
+void Session::(SendBufferRef sendBuffer)
 {
 	if (!IsConnected())
 		return;
