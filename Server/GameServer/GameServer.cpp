@@ -31,7 +31,7 @@ int main()
 
 		HealJob healJob;
 		healJob._target = 1;
-		healJob._healIValue = 10;
+		healJob._healValue = 10;
 
 		//나중에
 		healJob.Execute();
