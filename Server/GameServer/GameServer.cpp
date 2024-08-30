@@ -8,6 +8,9 @@
 #include "Protocol.pb.h"
 #include "job.h"
 #include "Room.h"
+#include "Player.h"
+
+#include <functional>
 
 
 void HealByValue(int64 target, int32 value)
@@ -26,18 +29,6 @@ public:
 
 int main()
 {
-	//TEST JOB
-	{
-		FuncJob<void, int64, int32> job(HealByValue,100,10);
-		job.Execute();
-	}
-
-	{
-		Knight k1;
-		MemberJob job2(&k1, &Knight::HealMe, 10);
-		job2.Execute();
-	}
-
 	ClientPacketHandler::Init();
 
 	ServerServiceRef service = MakeShared<ServerService>(
@@ -61,7 +52,7 @@ int main()
 
 	while (true)
 	{
-		GRoom.FlushJob();
+		GRoom->FlushJob();
 		this_thread::sleep_for(1s);
 	}
 

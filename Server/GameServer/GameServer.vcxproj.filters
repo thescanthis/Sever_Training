@@ -45,9 +45,6 @@
     <ClCompile Include="Room.cpp">
       <Filter>GameContents</Filter>
     </ClCompile>
-    <ClCompile Include="job.cpp">
-      <Filter>GameContents</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h">
@@ -75,9 +72,6 @@
       <Filter>GameContents</Filter>
     </ClInclude>
     <ClInclude Include="Room.h">
-      <Filter>GameContents</Filter>
-    </ClInclude>
-    <ClInclude Include="job.h">
       <Filter>GameContents</Filter>
     </ClInclude>
   </ItemGroup>
