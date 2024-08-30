@@ -9,32 +9,33 @@
 #include "job.h"
 #include "Room.h"
 
-// 패키직렬화
 
-class Player
+void HealByValue(int64 target, int32 value)
+{
+	std::cout << target << "한테 힐" << value << "만큼 줌" << '\n';
+}
+
+class Knight
 {
 public:
-	int32 hp = 0;
-	int32 attack = 0;
-	Player* target = nullptr;
-	vector<int>buffs;
+	void HealMe(int32 value)
+	{
+		cout << "HealMe!" << value << '\n';
+	}
 };
 
 int main()
 {
 	//TEST JOB
 	{
-		//[일감 의뢰 내용] : 1번 유저한테 10만큼 힐을 줘라!.
+		FuncJob<void, int64, int32> job(HealByValue,100,10);
+		job.Execute();
+	}
 
-		//행동 : Heal
-		//인자 : 1번유저, 10이라는 힐량
-
-		HealJob healJob;
-		healJob._target = 1;
-		healJob._healValue = 10;
-
-		//나중에
-		healJob.Execute();
+	{
+		Knight k1;
+		MemberJob job2(&k1, &Knight::HealMe, 10);
+		job2.Execute();
 	}
 
 	ClientPacketHandler::Init();
