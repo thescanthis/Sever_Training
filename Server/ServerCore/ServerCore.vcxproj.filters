@@ -96,20 +96,20 @@
     <ClInclude Include="SendBuffer.h">
       <Filter>Network</Filter>
     </ClInclude>
-    <ClInclude Include="BufferReader.h">
-      <Filter>Network</Filter>
-    </ClInclude>
-    <ClInclude Include="BufferWriter.h">
-      <Filter>Network</Filter>
-    </ClInclude>
-    <ClInclude Include="jobQueue.h">
-      <Filter>Job</Filter>
-    </ClInclude>
     <ClInclude Include="job.h">
       <Filter>Job</Filter>
     </ClInclude>
-    <ClInclude Include="jobSerializer.h">
+    <ClInclude Include="JobQueue.h">
       <Filter>Job</Filter>
+    </ClInclude>
+    <ClInclude Include="LockQueue.h">
+      <Filter>Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="BufferReader.h">
+      <Filter>Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="BufferWriter.h">
+      <Filter>Utils</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -173,20 +173,20 @@
     <ClCompile Include="SendBuffer.cpp">
       <Filter>Network</Filter>
     </ClCompile>
-    <ClCompile Include="BufferReader.cpp">
-      <Filter>Network</Filter>
-    </ClCompile>
-    <ClCompile Include="BufferWriter.cpp">
-      <Filter>Network</Filter>
-    </ClCompile>
-    <ClCompile Include="jobQueue.cpp">
-      <Filter>Job</Filter>
-    </ClCompile>
     <ClCompile Include="job.cpp">
       <Filter>Job</Filter>
     </ClCompile>
-    <ClCompile Include="jobSerializer.cpp">
+    <ClCompile Include="JobQueue.cpp">
       <Filter>Job</Filter>
+    </ClCompile>
+    <ClCompile Include="LockQueue.cpp">
+      <Filter>Utils</Filter>
+    </ClCompile>
+    <ClCompile Include="BufferReader.cpp">
+      <Filter>Utils</Filter>
+    </ClCompile>
+    <ClCompile Include="BufferWriter.cpp">
+      <Filter>Utils</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

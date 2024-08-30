@@ -72,7 +72,7 @@ bool Handle_C_ENTER_GAME(PacketSessionRef& session, Protocol::C_ENTER_GAME& pkt)
 
 	PlayerRef Player = gameSession->_player[index]; //READ_ONLY
 
-	GRoom->PushJob(&Room::Enter, Player);
+	GRoom->DoAsync(&Room::Enter, Player);
 	Protocol::S_ENTER_GAME enterGamePkt;
 	enterGamePkt.set_sucess(true);
 	auto sendBuffer = ClientPacketHandler::MakeSendBuffer(enterGamePkt);
@@ -90,7 +90,7 @@ bool Handle_C_CHAT(PacketSessionRef& session, Protocol::C_CHAT& pkt)
 	chatPkt.set_msg(pkt.msg());
 	auto sendBuffer = ClientPacketHandler::MakeSendBuffer(chatPkt);
 
-	GRoom->PushJob(&Room::Broadcast, sendBuffer);
+	GRoom->DoAsync(&Room::Broadcast, sendBuffer);
 	return true;
 }
 
