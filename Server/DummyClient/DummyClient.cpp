@@ -1,10 +1,11 @@
 ﻿#include "pch.h"
 #include "ThreadManager.h"
 #include "Service.h"
+#include "Session.h"
 #include "BufferReader.h"
 #include "ServerPacketHandler.h"
 
-char SendData[] = "Hello World";
+char sendData[] = "Hello World";
 
 class ServerSession : public PacketSession
 {
@@ -16,7 +17,6 @@ public:
 
 	virtual void OnConnected() override
 	{
-		//cout << "Connected To Server" << endl;
 		Protocol::C_LOGIN pkt;
 		auto sendBuffer = ServerPacketHandler::MakeSendBuffer(pkt);
 		Send(sendBuffer);
@@ -26,7 +26,9 @@ public:
 	{
 		PacketSessionRef session = GetPacketSessionRef();
 		PacketHeader* header = reinterpret_cast<PacketHeader*>(buffer);
-		ServerPacketHandler::HandlePacket(session,buffer,len);
+
+		// TODO : packetId 대역 체크
+		ServerPacketHandler::HandlePacket(session, buffer, len);
 	}
 
 	virtual void OnSend(int32 len) override
@@ -43,13 +45,14 @@ public:
 int main()
 {
 	ServerPacketHandler::Init();
+
 	this_thread::sleep_for(1s);
 
 	ClientServiceRef service = MakeShared<ClientService>(
 		NetAddress(L"127.0.0.1", 7777),
 		MakeShared<IocpCore>(),
 		MakeShared<ServerSession>, // TODO : SessionManager 등
-		100);
+		1);
 
 	ASSERT_CRASH(service->Start());
 
@@ -65,7 +68,7 @@ int main()
 	}
 
 	Protocol::C_CHAT chatPkt;
-	chatPkt.set_msg(u8"Hello World! ");
+	chatPkt.set_msg(u8"Hello World !");
 	auto sendBuffer = ServerPacketHandler::MakeSendBuffer(chatPkt);
 
 	while (true)

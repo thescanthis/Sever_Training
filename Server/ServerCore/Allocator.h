@@ -7,7 +7,7 @@
 class BaseAllocator
 {
 public:
-	static void*	Alloc(int32 size);
+	static void* Alloc(int32 size);
 	static void		Release(void* ptr);
 };
 
@@ -20,7 +20,7 @@ class StompAllocator
 	enum { PAGE_SIZE = 0x1000 };
 
 public:
-	static void*	Alloc(int32 size);
+	static void* Alloc(int32 size);
 	static void		Release(void* ptr);
 };
 
@@ -31,7 +31,7 @@ public:
 class PoolAllocator
 {
 public:
-	static void*	Alloc(int32 size);
+	static void* Alloc(int32 size);
 	static void		Release(void* ptr);
 };
 
@@ -60,4 +60,10 @@ public:
 	{
 		PoolAllocator::Release(ptr);
 	}
+
+	template<typename U>
+	bool operator==(const StlAllocator<U>&) { return true; }
+
+	template<typename U>
+	bool operator!=(const StlAllocator<U>&) { return false; }
 };

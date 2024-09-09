@@ -19,21 +19,22 @@ Session::~Session()
 
 void Session::Send(SendBufferRef sendBuffer)
 {
-	if (!IsConnected())
+	if (IsConnected() == false)
 		return;
-	//현재 RegisterSend가 걸리지 않은 상태라면, 걸어준다.
-	//만약 실행중이라면,Qeueue넣고 빠져나오게 할꺼임.
-	
+
 	bool registerSend = false;
+
+	// 현재 RegisterSend가 걸리지 않은 상태라면, 걸어준다
 	{
 		WRITE_LOCK;
+
 		_sendQueue.push(sendBuffer);
 
 		if (_sendRegistered.exchange(true) == false)
 			registerSend = true;
 	}
 
-	if(registerSend)
+	if (registerSend)
 		RegisterSend();
 }
 
@@ -165,10 +166,13 @@ void Session::RegisterSend()
 	// 보낼 데이터를 sendEvent에 등록
 	{
 		WRITE_LOCK;
+
 		int32 writeSize = 0;
-		while (!_sendQueue.empty())
+		while (_sendQueue.empty() == false)
 		{
 			SendBufferRef sendBuffer = _sendQueue.front();
+
+			writeSize += sendBuffer->WriteSize();
 			// TODO : 예외 체크
 
 			_sendQueue.pop();
@@ -176,10 +180,9 @@ void Session::RegisterSend()
 		}
 	}
 
-	// Scatter-Gather (흩어져 있는 데이터들을 모아서 한 방에 보낸다.)
+	// Scatter-Gather (흩어져 있는 데이터들을 모아서 한 방에 보낸다)
 	Vector<WSABUF> wsaBufs;
 	wsaBufs.reserve(_sendEvent.sendBuffers.size());
-
 	for (SendBufferRef sendBuffer : _sendEvent.sendBuffers)
 	{
 		WSABUF wsaBuf;
@@ -189,14 +192,14 @@ void Session::RegisterSend()
 	}
 
 	DWORD numOfBytes = 0;
-	if (SOCKET_ERROR == ::WSASend(_socket, wsaBufs.data(), 1, OUT & numOfBytes, 0, &_sendEvent, nullptr))
+	if (SOCKET_ERROR == ::WSASend(_socket, wsaBufs.data(), static_cast<DWORD>(wsaBufs.size()), OUT & numOfBytes, 0, &_sendEvent, nullptr))
 	{
 		int32 errorCode = ::WSAGetLastError();
 		if (errorCode != WSA_IO_PENDING)
 		{
 			HandleError(errorCode);
 			_sendEvent.owner = nullptr; // RELEASE_REF
-			_sendEvent.sendBuffers.clear();
+			_sendEvent.sendBuffers.clear(); // RELEASE_REF
 			_sendRegistered.store(false);
 		}
 	}
@@ -250,9 +253,8 @@ void Session::ProcessRecv(int32 numOfBytes)
 		return;
 	}
 
-	//커서 정리
+	// 커서 정리
 	_recvBuffer.Clean();
-
 
 	// 수신 등록
 	RegisterRecv();
@@ -261,7 +263,7 @@ void Session::ProcessRecv(int32 numOfBytes)
 void Session::ProcessSend(int32 numOfBytes)
 {
 	_sendEvent.owner = nullptr; // RELEASE_REF
-	_sendEvent.sendBuffers.clear(); // RELASE_REF
+	_sendEvent.sendBuffers.clear(); // RELEASE_REF
 
 	if (numOfBytes == 0)
 	{
@@ -274,12 +276,9 @@ void Session::ProcessSend(int32 numOfBytes)
 
 	WRITE_LOCK;
 	if (_sendQueue.empty())
-	{
 		_sendRegistered.store(false);
-	}
-	else {
+	else
 		RegisterSend();
-	}
 }
 
 void Session::HandleError(int32 errorCode)
@@ -297,6 +296,10 @@ void Session::HandleError(int32 errorCode)
 	}
 }
 
+/*-----------------
+	PacketSession
+------------------*/
+
 PacketSession::PacketSession()
 {
 }
@@ -305,25 +308,26 @@ PacketSession::~PacketSession()
 {
 }
 
-//[size(2)][id(2)][data....][size(2)][id(2)][data....]
+// [size(2)][id(2)][data....][size(2)][id(2)][data....]
 int32 PacketSession::OnRecv(BYTE* buffer, int32 len)
 {
-	int processLen = 0;
+	int32 processLen = 0;
+
 	while (true)
 	{
-		int32 dataSize = len- processLen;
-		//최소한 헤더는 파싱할 수 있어야 한다.
+		int32 dataSize = len - processLen;
+		// 최소한 헤더는 파싱할 수 있어야 한다
 		if (dataSize < sizeof(PacketHeader))
 			break;
 
 		PacketHeader header = *(reinterpret_cast<PacketHeader*>(&buffer[processLen]));
-		//헤더에 기록된 패킷 크기를 파싱 할 수 있어야 한다.
-
+		// 헤더에 기록된 패킷 크기를 파싱할 수 있어야 한다
 		if (dataSize < header.size)
 			break;
-		
-		//패킷 조립 성공
+
+		// 패킷 조립 성공
 		OnRecvPacket(&buffer[processLen], header.size);
+
 		processLen += header.size;
 	}
 

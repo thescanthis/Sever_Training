@@ -18,7 +18,7 @@ class Session : public IocpObject
 
 	enum
 	{
-		BUFFER_SIZE =0x10'000, // 64KB
+		BUFFER_SIZE = 0x10000, // 64KB
 	};
 
 public:
@@ -83,6 +83,7 @@ private:
 	/* 송신 관련 */
 	Queue<SendBufferRef>	_sendQueue;
 	Atomic<bool>			_sendRegistered = false;
+
 private:
 	/* IocpEvent 재사용 */
 	ConnectEvent		_connectEvent;
@@ -91,27 +92,25 @@ private:
 	SendEvent			_sendEvent;
 };
 
-/*----------------------
-	 PacketSession
-----------------------*/
+/*-----------------
+	PacketSession
+------------------*/
 
-struct PacketHeader {
-
+struct PacketHeader
+{
 	uint16 size;
-	uint16 id; //프로토콜 ID(ex 1= 로그인,2=이동요청)
+	uint16 id; // 프로토콜ID (ex. 1=로그인, 2=이동요청)
 };
 
-
-//[size(2)][id(2)][data....][size(2)][id(2)][data....]
 class PacketSession : public Session
 {
 public:
 	PacketSession();
 	virtual ~PacketSession();
 
-	PacketSessionRef GetPacketSessionRef() { return static_pointer_cast<PacketSession>(shared_from_this()); }
+	PacketSessionRef	GetPacketSessionRef() { return static_pointer_cast<PacketSession>(shared_from_this()); }
 
 protected:
-	virtual int32 OnRecv(BYTE* buffer, int32 len) sealed; // sealed키워드를 주면 얘를 사용하지못함..?
-	virtual void OnRecvPacket(BYTE* buffer, int32 len) abstract;
+	virtual int32		OnRecv(BYTE* buffer, int32 len) sealed;
+	virtual void		OnRecvPacket(BYTE* buffer, int32 len) abstract;
 };

@@ -1,10 +1,12 @@
 #pragma once
 #include "Session.h"
+
 class GameSession : public PacketSession
 {
 public:
 	~GameSession()
 	{
+		int32 x = 0;
 		cout << "~GameSession" << endl;
 	}
 
@@ -14,6 +16,8 @@ public:
 	virtual void OnSend(int32 len) override;
 
 public:
-	Vector<PlayerRef> _player;
-};
+	Vector<PlayerRef> _players;
 
+	PlayerRef _currentPlayer;
+	weak_ptr<class Room> _room;
+};

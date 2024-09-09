@@ -19,6 +19,9 @@
     <Filter Include="Job">
       <UniqueIdentifier>{8126abce-bb64-400b-8583-4f0a3ae3e234}</UniqueIdentifier>
     </Filter>
+    <Filter Include="DB">
+      <UniqueIdentifier>{40d24cf6-d177-47a7-adc9-693fc7f95805}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="CorePch.h">
@@ -114,6 +117,18 @@
     <ClInclude Include="GlobalQueue.h">
       <Filter>Job</Filter>
     </ClInclude>
+    <ClInclude Include="JobTimer.h">
+      <Filter>Job</Filter>
+    </ClInclude>
+    <ClInclude Include="DBConnection.h">
+      <Filter>DB</Filter>
+    </ClInclude>
+    <ClInclude Include="DBConnectionPool.h">
+      <Filter>DB</Filter>
+    </ClInclude>
+    <ClInclude Include="DBBind.h">
+      <Filter>DB</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="CorePch.cpp">
@@ -193,6 +208,18 @@
     </ClCompile>
     <ClCompile Include="GlobalQueue.cpp">
       <Filter>Job</Filter>
+    </ClCompile>
+    <ClCompile Include="JobTimer.cpp">
+      <Filter>Job</Filter>
+    </ClCompile>
+    <ClCompile Include="DBConnection.cpp">
+      <Filter>DB</Filter>
+    </ClCompile>
+    <ClCompile Include="DBConnectionPool.cpp">
+      <Filter>DB</Filter>
+    </ClCompile>
+    <ClCompile Include="DBBind.cpp">
+      <Filter>DB</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

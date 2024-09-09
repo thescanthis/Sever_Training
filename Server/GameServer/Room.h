@@ -14,4 +14,3 @@ private:
 };
 
 extern shared_ptr<Room> GRoom;
-
