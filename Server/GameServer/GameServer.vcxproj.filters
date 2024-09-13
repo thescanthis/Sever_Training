@@ -13,6 +13,9 @@
     <Filter Include="GameContents">
       <UniqueIdentifier>{ae102535-4166-4937-981a-ba54655c802b}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Main\DB">
+      <UniqueIdentifier>{b2104fa6-bed2-4998-b350-f4377028a39f}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="GameServer.cpp">
@@ -88,5 +91,10 @@
     <None Include="..\Common\protobuf\bin\GenPackets.bat">
       <Filter>protocol</Filter>
     </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Xml Include="GameDB.xml">
+      <Filter>Main\DB</Filter>
+    </Xml>
   </ItemGroup>
 </Project>

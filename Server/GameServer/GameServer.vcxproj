@@ -228,6 +228,9 @@
     <UpToDateCheckInput Include="..\Common\protobuf\bin\Protocol.proto" />
     <UpToDateCheckInput Include="..\Common\protobuf\bin\Struct.proto" />
   </ItemGroup>
+  <ItemGroup>
+    <Xml Include="GameDB.xml" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
