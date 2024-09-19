@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <GameDB>
      <Table name ="Gold">
-       <Column name="id" type="int" notnull="true"/>
+       <Column name="id" type="int" notnull="true" identity="1,1"/>
        <Column name="gold" type="int" notnull="false"/>
        <Column name="name" type="nvarchar(50)" notnull="false"/>
        <Column name="createDate" type="datetime" notnull="false"/>
@@ -12,7 +12,7 @@
      </Table>
      <Procedure name="spInsertGold">
           <Param name="@Gold" type="int"/>
-          <Param name="@name" type="nverchar(50)"/>
+          <Param name="@name" type="nvarchar(50)"/>
           <Param name="@createDate" type="datetime"/>
           <Body>
               <![CDATA[
